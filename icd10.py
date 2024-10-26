@@ -719,3 +719,114 @@ def process_all_codes(output_file: str = 'icd10_all_codes.json'):
     
     print(f"Processed {len(results)} codes")
     print(f"Results saved to {output_file}")
+
+
+
+import os
+from typing import Dict, Any
+from colorama import init, Fore, Style, Back
+
+class ICD10Visualizer:
+    def __init__(self):
+        self.indent = "    "
+        self.branch = "├── "
+        self.pipe = "│   "
+        self.last_branch = "└── "
+        self.empty = "    "
+
+    def _print_colored(self, text: str, color: str = Fore.WHITE, style: str = Style.NORMAL, end: str = '\n'):
+        """Print text with color and style"""
+        print(f"{style}{color}{text}{Style.RESET_ALL}", end=end)
+
+    def _print_section(self, title: str, items: list, color: str = Fore.WHITE, indent_level: int = 1):
+        """Print a section with items"""
+        if items:
+            self._print_colored(f"{self.indent * indent_level}{title}", color, Style.BRIGHT)
+            for item in items:
+                print(f"{self.indent * (indent_level + 1)}{item}")
+
+    def _print_dict_section(self, title: str, data: Dict[str, str], color: str = Fore.WHITE, indent_level: int = 1):
+        """Print a dictionary section"""
+        if data:
+            self._print_colored(f"{self.indent * indent_level}{title}", color, Style.BRIGHT)
+            for key, value in data.items():
+                print(f"{self.indent * (indent_level + 1)}{key}: {value}")
+
+    def visualize_code(self, code: str):
+        """Visualize an ICD-10 code hierarchy with all its details"""
+        # Get the full data for the code
+        try:
+            data = get_full_data(code)
+        except ValueError as e:
+            self._print_colored(f"Error: {str(e)}", Fore.RED, Style.BRIGHT)
+            return
+
+        # Clear screen for better visibility
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+        # Print main code header
+        self._print_colored("\nICD-10 Code Hierarchy", Fore.CYAN, Style.BRIGHT)
+        print("=" * 80)
+
+        def print_code_node(node_data: Dict[str, Any], prefix: str = "", is_last: bool = True):
+            """Recursively print code node and its details"""
+            # Print code and description
+            current_prefix = prefix + (self.last_branch if is_last else self.branch)
+            self._print_colored(f"{current_prefix}{node_data['code']}", Fore.YELLOW, Style.BRIGHT, end=" ")
+            print(f"- {node_data['description']}")
+
+            # Calculate new prefix for children
+            new_prefix = prefix + (self.empty if is_last else self.pipe)
+
+            # Print details
+            if node_data.get('type'):
+                print(f"{new_prefix}{self.indent}Type: {node_data['type']}")
+
+            # Print various sections with different colors
+            if node_data.get('excludes1'):
+                self._print_section("Excludes1:", node_data['excludes1'], Fore.RED, 
+                                  indent_level=len(new_prefix.split(self.pipe)))
+
+            if node_data.get('excludes2'):
+                self._print_section("Excludes2:", node_data['excludes2'], Fore.MAGENTA,
+                                  indent_level=len(new_prefix.split(self.pipe)))
+
+            if node_data.get('includes'):
+                self._print_section("Includes:", node_data['includes'], Fore.GREEN,
+                                  indent_level=len(new_prefix.split(self.pipe)))
+
+            if node_data.get('inclusionTerms'):
+                self._print_section("Inclusion Terms:", node_data['inclusionTerms'], Fore.BLUE,
+                                  indent_level=len(new_prefix.split(self.pipe)))
+
+            if node_data.get('sevenCharacterNote'):
+                print(f"{new_prefix}{self.indent}Seven Character Note:")
+                print(f"{new_prefix}{self.indent}{self.indent}{node_data['sevenCharacterNote']}")
+
+            if node_data.get('sevenCharacterDefinitions'):
+                self._print_dict_section("Seven Character Definitions:", 
+                                       node_data['sevenCharacterDefinitions'],
+                                       Fore.CYAN,
+                                       indent_level=len(new_prefix.split(self.pipe)))
+
+            if node_data.get('additionalCodes'):
+                self._print_dict_section("Additional Codes:", 
+                                       node_data['additionalCodes'],
+                                       Fore.YELLOW,
+                                       indent_level=len(new_prefix.split(self.pipe)))
+
+            # Print parent chain
+            if node_data.get('parentChain'):
+                print(f"\n{new_prefix}Parent Chain:")
+                parent_items = list(node_data['parentChain'].items())
+                for i, (parent_code, parent_data) in enumerate(parent_items):
+                    is_last_parent = i == len(parent_items) - 1
+                    print_code_node(parent_data, new_prefix, is_last_parent)
+
+        # Start visualization from root node
+        print_code_node(data)
+
+def visualize_icd10_code(code: str):
+    """Helper function to visualize an ICD-10 code"""
+    visualizer = ICD10Visualizer()
+    visualizer.visualize_code(code)
