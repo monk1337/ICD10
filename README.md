@@ -195,4 +195,4 @@ format_icd10_data(code: str) -> dict
 Takes an ICD10 code as input and returns a dictionary containing detailed information about the code, including its description, parent, children, and parent chain.
 
 
-Original repo : [StefanoTrv/simple_icd_10_CM](https://github.com/StefanoTrv/simple_icd_10_CM/tree/master)
+This work is build top on : [StefanoTrv/simple_icd_10_CM](https://github.com/StefanoTrv/simple_icd_10_CM/tree/master)
