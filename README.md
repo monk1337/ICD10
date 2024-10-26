@@ -214,10 +214,10 @@ result = cm.process_all_codes()
 Visualize the code
 
 ```python
-from icd10 import visualize_icd10_tree
-visualize_icd10_tree("S52.11")
+from icd10 import visualize_icd10_code
+visualize_icd10_code("S52.11")
 ```
-<img width="641" alt="Screenshot 2024-10-26 at 8 40 10 AM" src="https://github.com/user-attachments/assets/38537131-bd06-435f-9603-57135ff4df79">
+<img width="729" alt="Screenshot 2024-10-26 at 8 45 55 AM" src="https://github.com/user-attachments/assets/34b0324b-f596-43f5-a908-abb1b36f6f21">
 
 
 Functions
