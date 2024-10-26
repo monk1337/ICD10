@@ -725,6 +725,7 @@ def process_all_codes(output_file: str = 'icd10_all_codes.json'):
 import os
 from typing import Dict, Any
 from colorama import init, Fore, Style, Back
+import colorama
 
 class ICD10Visualizer:
     def __init__(self):
