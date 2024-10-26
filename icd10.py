@@ -322,52 +322,181 @@ def is_leaf(code: str, prioritize_blocks=False) -> bool:
         node = node.parent
     return len(node.children)==0
 
-def get_full_data(code: str, search_in_ancestors=False, prioritize_blocks=False) -> str:
+def get_full_data(code: str, search_in_ancestors=False, prioritize_blocks=False) -> dict:
+    """
+    Get complete data for an ICD-10 code including its entire parent chain
+    
+    Args:
+        code (str): The ICD-10 code to look up
+        search_in_ancestors (bool): Whether to search in ancestors for certain attributes
+        prioritize_blocks (bool): Whether to prioritize block level information
+        
+    Returns:
+        dict: Dictionary containing complete code information and parent chain
+    """
     if not is_valid_item(code):
         raise ValueError("The code \""+code+"\" does not exist.")
+    
     node = code_to_node[_add_dot_to_code(code)]
     if prioritize_blocks and node.parent!=None and node.parent.name==node.name:
         node = node.parent
-    str = "Name:\n"+node.name+"\nDescription:\n"+node.description
-    if node.parent!=None:
-        str = str + "\nParent:\n" + node.parent.name
-    if node.excludes1!=[]:
-        str = str + "\nexcludes1:"
-        for item in node.excludes1:
-            str = str + "\n" + item
-    if node.excludes2!=[]:
-        str = str + "\nexcludes2:"
-        for item in node.excludes2:
-            str = str + "\n" + item
-    if node.includes!=[]:
-        str = str + "\nincludes:"
-        for item in node.includes:
-            str = str + "\n" + item
-    if node.inclusion_term!=[]:
-        str = str + "\ninclusion term:"
-        for item in node.inclusion_term:
-            str = str + "\n" + item
-    seven_chr_note=get_seven_chr_note(code,search_in_ancestors=search_in_ancestors,prioritize_blocks=prioritize_blocks)
-    if seven_chr_note!="":
-        str = str + "\nseven chr note:\n" + seven_chr_note
-    seven_chr_def=get_seven_chr_def(code,search_in_ancestors=search_in_ancestors,prioritize_blocks=prioritize_blocks)
-    if seven_chr_def!={}:
-        str = str + "\nseven chr def:"
-        for item in seven_chr_def:
-            str = str + "\n" + item + ":\t" + seven_chr_def[item]
-    use_additional=get_use_additional_code(code,search_in_ancestors=search_in_ancestors,prioritize_blocks=prioritize_blocks)
-    if use_additional!="":
-        str = str + "\nuse additional code:\n" + use_additional
-    code_first=get_code_first(code,search_in_ancestors=search_in_ancestors,prioritize_blocks=prioritize_blocks)
-    if code_first!="":
-        str = str + "\ncode first:\n" + code_first
-    if node.children==[]:
-        str = str + "\nChildren:\nNone--"
-    else:
-        str = str + "\nChildren:\n"
-        for child in node.children:
-            str = str + child.name + ", "
-    return str[:-2]
+
+    # Build the main code data
+    result = {
+        "code": node.name,
+        "description": node.description,
+        "type": node.type,
+        "parent": node.parent.name if node.parent else "",
+        "children": get_children(node.name, prioritize_blocks),
+    }
+    
+    # Add optional fields if they exist
+    if node.excludes1:
+        result["excludes1"] = node.excludes1
+
+    if node.excludes2:
+        result["excludes2"] = node.excludes2
+        
+    if node.includes:
+        result["includes"] = node.includes
+        
+    if node.inclusion_term:
+        result["inclusionTerms"] = node.inclusion_term
+        
+    # Get seven character information
+    seven_chr_note = get_seven_chr_note(code, search_in_ancestors, prioritize_blocks)
+    if seven_chr_note:
+        result["sevenCharacterNote"] = seven_chr_note
+        
+    seven_chr_def = get_seven_chr_def(code, search_in_ancestors, prioritize_blocks)
+    if seven_chr_def:
+        result["sevenCharacterDefinitions"] = seven_chr_def
+        
+    # Get additional coding instructions
+    use_additional = get_use_additional_code(code, search_in_ancestors, prioritize_blocks)
+    if use_additional:
+        result["additionalCodes"] = {"use_additional_code": use_additional}
+        
+    code_first = get_code_first(code, search_in_ancestors, prioritize_blocks)
+    if code_first:
+        if "additionalCodes" not in result:
+            result["additionalCodes"] = {}
+        result["additionalCodes"]["code_first"] = code_first
+
+    # Build parent chain
+    parent_chain = {}
+    current = node
+    while current.parent is not None:
+        parent = current.parent
+        parent_data = {
+            "code": parent.name,
+            "description": parent.description,
+            "type": parent.type,
+            "parent": parent.parent.name if parent.parent else "",
+            "children": get_children(parent.name, prioritize_blocks)
+        }
+        
+        # Add optional fields for parent
+        if parent.excludes1:
+            parent_data["excludes1"] = parent.excludes1
+            
+        if parent.excludes2:
+            parent_data["excludes2"] = parent.excludes2
+            
+        if parent.includes:
+            parent_data["includes"] = parent.includes
+            
+        if parent.inclusion_term:
+            parent_data["inclusionTerms"] = parent.inclusion_term
+            
+        # Get parent's seven character information
+        parent_seven_note = get_seven_chr_note(parent.name, search_in_ancestors, prioritize_blocks)
+        if parent_seven_note:
+            parent_data["sevenCharacterNote"] = parent_seven_note
+            
+        parent_seven_def = get_seven_chr_def(parent.name, search_in_ancestors, prioritize_blocks)
+        if parent_seven_def:
+            parent_data["sevenCharacterDefinitions"] = parent_seven_def
+            
+        # Get parent's additional coding instructions
+        parent_use_additional = get_use_additional_code(parent.name, search_in_ancestors, prioritize_blocks)
+        if parent_use_additional:
+            parent_data["additionalCodes"] = {"use_additional_code": parent_use_additional}
+            
+        parent_code_first = get_code_first(parent.name, search_in_ancestors, prioritize_blocks)
+        if parent_code_first:
+            if "additionalCodes" not in parent_data:
+                parent_data["additionalCodes"] = {}
+            parent_data["additionalCodes"]["code_first"] = parent_code_first
+            
+        parent_chain[parent.name] = parent_data
+        current = parent
+        
+    result["parentChain"] = parent_chain
+    return result
+
+def print_code_details(code: str, search_in_ancestors=False, prioritize_blocks=False) -> None:
+    """
+    Pretty print the complete code details including parent chain
+    
+    Args:
+        code (str): The ICD-10 code to look up
+        search_in_ancestors (bool): Whether to search in ancestors for certain attributes
+        prioritize_blocks (bool): Whether to prioritize block level information
+    """
+    data = get_full_data(code, search_in_ancestors, prioritize_blocks)
+    
+    print(f"Code: {data['code']}")
+    print(f"Description: {data['description']}")
+    print(f"Type: {data['type']}")
+    print(f"Parent: {data['parent']}")
+    print(f"Children: {', '.join(data['children']) if data['children'] else 'None'}")
+    
+    if "excludes1" in data:
+        print("\nExcludes1:")
+        for item in data["excludes1"]:
+            print(f"- {item}")
+            
+    if "excludes2" in data:
+        print("\nExcludes2:")
+        for item in data["excludes2"]:
+            print(f"- {item}")
+            
+    if "includes" in data:
+        print("\nIncludes:")
+        for item in data["includes"]:
+            print(f"- {item}")
+            
+    if "inclusionTerms" in data:
+        print("\nInclusion Terms:")
+        for item in data["inclusionTerms"]:
+            print(f"- {item}")
+            
+    if "sevenCharacterNote" in data:
+        print(f"\nSeven Character Note: {data['sevenCharacterNote']}")
+        
+    if "sevenCharacterDefinitions" in data:
+        print("\nSeven Character Definitions:")
+        for char, desc in data["sevenCharacterDefinitions"].items():
+            print(f"{char}: {desc}")
+            
+    if "additionalCodes" in data:
+        print("\nAdditional Coding Instructions:")
+        for key, value in data["additionalCodes"].items():
+            print(f"{key}: {value}")
+            
+    if data["parentChain"]:
+        print("\nParent Chain:")
+        for parent_code, parent_data in data["parentChain"].items():
+            print(f"\n{parent_code}:")
+            print(f"  Description: {parent_data['description']}")
+            print(f"  Type: {parent_data['type']}")
+            if "sevenCharacterDefinitions" in parent_data:
+                print("  Seven Character Definitions Available")
+            if "additionalCodes" in parent_data:
+                print("  Additional Coding Instructions Available")
+
+
 
 def get_ancestors(code: str,prioritize_blocks=False) -> list[str]:
     if not is_valid_item(code):
