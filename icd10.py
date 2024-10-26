@@ -701,14 +701,14 @@ def process_all_codes(output_file: str = 'icd10_all_codes.json'):
         output_file (str): Path to save the JSON output
     """
     # Get all ICD-10 codes using the built-in function
-    codes = cm.get_all_codes()
+    codes = get_all_codes()
     
     results = {}
     
     # Process each code
     for code in tqdm(codes, desc="Processing ICD-10 codes"):
         try:
-            results[code] = cm.get_full_data(code)
+            results[code] = get_full_data(code)
         except Exception as e:
             print(f"Error processing code {code}: {str(e)}")
             continue
