@@ -1,5 +1,5 @@
 ## ICD10
-A Python library for working with the hierarchy of ICD10 codes.
+A Python library for working with the hierarchy of ICD10 codes. (build top on StefanoTrv/simple_icd_10_CM)
 
 ### Overview
 ICD10 is a Python library designed to help users explore the structure and details of ICD10 codes. It allows you to retrieve descriptions, hierarchical relationships, and related codes effortlessly.
