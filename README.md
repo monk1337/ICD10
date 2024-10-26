@@ -15,7 +15,7 @@ Here’s a simple example to get you started:
 import icd10 as cm
 
 # Format and retrieve detailed data for a specific ICD10 code.
-result = cm.format_icd10_data("S52.112A")
+result = cm.get_full_data("S52.112A")
 print(result)
 ```
 
