@@ -190,6 +190,20 @@ print(result)
 }
 ```
 
+
+
+
+```python
+import icd10 as cm
+
+# Format and retrieve detailed data for a specific ICD10 code.
+result = cm.process_all_codes()
+
+# it will save single json file named 'icd10_all_codes.json` , each code in same format as above example
+```
+
+
+
 Functions
 format_icd10_data(code: str) -> dict
 Takes an ICD10 code as input and returns a dictionary containing detailed information about the code, including its description, parent, children, and parent chain.
