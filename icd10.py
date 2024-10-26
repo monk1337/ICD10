@@ -689,7 +689,33 @@ def format_icd10_data(code: str, search_in_ancestors=True, prioritize_blocks=Fal
         
     return result
 
-# Example usage:
-# formatted_data = format_icd10_data("S52.112A")
-# import json
-# print(json.dumps(formatted_data, indent=2))
+
+import json
+from tqdm import tqdm
+
+def process_all_codes(output_file: str = 'icd10_all_codes.json'):
+    """
+    Process all ICD-10 codes using format_icd10_data and save to JSON.
+    
+    Args:
+        output_file (str): Path to save the JSON output
+    """
+    # Get all ICD-10 codes using the built-in function
+    codes = cm.get_all_codes()
+    
+    results = {}
+    
+    # Process each code
+    for code in tqdm(codes, desc="Processing ICD-10 codes"):
+        try:
+            results[code] = cm.get_full_data(code)
+        except Exception as e:
+            print(f"Error processing code {code}: {str(e)}")
+            continue
+    
+    # Save to JSON file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    
+    print(f"Processed {len(results)} codes")
+    print(f"Results saved to {output_file}")
